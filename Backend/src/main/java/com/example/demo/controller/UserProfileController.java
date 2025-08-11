@@ -1,4 +1,3 @@
-// UserProfileController.java
 package com.example.demo.controller;
 
 import com.example.demo.model.User;
@@ -8,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -35,6 +36,42 @@ public class UserProfileController {
     @GetMapping("/lawyers")
     public ResponseEntity<List<User>> getAllLawyers() {
         return ResponseEntity.ok(userService.getAllLawyers());
+    }
+
+    @GetMapping("/lawyers/pending")
+    public ResponseEntity<List<User>> getPendingLawyers() {
+        List<User> lawyers = userService.getAllLawyers();
+        List<User> pendingLawyers = lawyers.stream()
+            .filter(lawyer -> "pending".equals(lawyer.getVerificationStatus()))
+            .toList();
+        return ResponseEntity.ok(pendingLawyers);
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getDashboardStats() {
+        List<User> allUsers = userService.getAllUsers();
+        List<User> lawyers = userService.getAllLawyers();
+        
+        long totalUsers = allUsers.size();
+        long totalClients = allUsers.stream()
+            .filter(user -> "client".equals(user.getRole()))
+            .count();
+        long totalLawyers = lawyers.size();
+        long pendingVerifications = lawyers.stream()
+            .filter(lawyer -> "pending".equals(lawyer.getVerificationStatus()))
+            .count();
+        long verifiedLawyers = lawyers.stream()
+            .filter(lawyer -> "verified".equals(lawyer.getVerificationStatus()))
+            .count();
+        
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalUsers", totalUsers);
+        stats.put("totalClients", totalClients);
+        stats.put("totalLawyers", totalLawyers);
+        stats.put("pendingVerifications", pendingVerifications);
+        stats.put("verifiedLawyers", verifiedLawyers);
+        
+        return ResponseEntity.ok(stats);
     }
 
     @PatchMapping("/verify/{id}")

@@ -1,7 +1,11 @@
 package com.example.demo.model;
 
 import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
 import java.util.List;
+
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "users")
@@ -37,6 +41,14 @@ public class User {
     // New fields
     private String aadhaarPan;
     private String driveLink;
+
+
+
+
+
+
+
+
 
     // Getters and Setters
     public String getAadhaarPan() {

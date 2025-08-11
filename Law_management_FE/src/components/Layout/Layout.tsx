@@ -13,7 +13,7 @@ const Layout: React.FC = () => {
   const closeSidebar = () => setSidebarOpen(false);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex overflow-hidden">
       {/* Sidebar */}
       {user && <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />}
 

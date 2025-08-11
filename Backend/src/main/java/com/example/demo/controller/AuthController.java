@@ -18,8 +18,12 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
-        User createdUser = userService.registerUser(user);
-        return ResponseEntity.ok(Map.of("message", "User registered successfully", "user", createdUser));
+        try {
+            User createdUser = userService.registerUser(user);
+            return ResponseEntity.ok(Map.of("message", "User registered successfully", "user", createdUser));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/login")
@@ -30,5 +34,24 @@ public class AuthController {
         return userService.login(email, password)
             .map(user -> ResponseEntity.ok(Map.of("message", "Login successful", "user", user)))
             .orElse(ResponseEntity.status(401).body(Map.of("error", "Invalid credentials")));
+    }
+
+     // --- NEW ENDPOINT FOR FORGOT PASSWORD ---
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String newPassword = payload.get("newPassword");
+
+        if (email == null || newPassword == null || email.trim().isEmpty() || newPassword.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email and new password must be provided."));
+        }
+
+        boolean isUpdated = userService.updatePassword(email, newPassword);
+
+        if (isUpdated) {
+            return ResponseEntity.ok(Map.of("message", "Password updated successfully. You can now login."));
+        } else {
+            return ResponseEntity.status(404).body(Map.of("error", "User with this email does not exist."));
+        }
     }
 }

@@ -108,7 +108,7 @@ const BookAppointmentModal: React.FC<Props> = ({ lawyer, onClose, clientId }) =>
           <button
             onClick={handleBooking}
             disabled={
-              !date || !startTime || !endTime || !type || !lawyer?.consultationFee
+              !date || !startTime || !endTime || !type
             }
             
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"

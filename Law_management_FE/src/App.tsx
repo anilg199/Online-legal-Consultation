@@ -18,6 +18,7 @@ import LawyerVerification from './pages/admin/LawyerVerification';
 import LawyerRegistration from './pages/lawyer/LawyerRegistration';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 import About from './pages/About';
+import ForgotPassword from './components/Auth/ForgetPassword';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ 
   children, 
@@ -72,6 +73,17 @@ const AppRoutes: React.FC = () => {
             <PublicRoute>
               <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
                 <RegisterForm />
+              </div>
+            </PublicRoute>
+          }
+        />
+
+<Route
+          path="forgot-password"
+          element={
+            <PublicRoute>
+              <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+                <ForgotPassword />
               </div>
             </PublicRoute>
           }

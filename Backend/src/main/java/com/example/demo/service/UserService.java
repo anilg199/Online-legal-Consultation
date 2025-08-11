@@ -16,6 +16,11 @@ public class UserService {
     private UserRepository userRepository;
 
     public User registerUser(User user) {
+        // Check if email already exists
+        Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser.isPresent()) {
+            throw new RuntimeException("Email already registered");
+        }
         return userRepository.save(user);
     }
 
@@ -71,6 +76,19 @@ public class UserService {
             return userRepository.save(user);
         }
         return null;
+    }
+
+    public boolean updatePassword(String email, String newPassword) {
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            // IMPORTANT: In production, hash the new password before saving.
+            // user.setPassword(passwordEncoder.encode(newPassword));
+            user.setPassword(newPassword);
+            userRepository.save(user);
+            return true;
+        }
+        return false; // User not found
     }
 
 }

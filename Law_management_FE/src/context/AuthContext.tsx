@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
 
+// The User interface seems to be missing some fields from your Profile page
+// Consider updating it to be more comprehensive
 interface User {
   id: number;
   name: string;
@@ -10,6 +12,8 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  loading: boolean; // 👈 1. Add loading state to the type
+  setUser: (user: User | null) => void; // 👈 2. Expose setUser for profile updates
   register: (data: any) => Promise<User>;
   login: (email: string, password: string, role: string) => Promise<void>;
   logout: () => void;
@@ -17,64 +21,85 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true); // 👈 3. Initialize loading as true
 
-  // Load user from localStorage on initial render
+  // Load user from sessionStorage on initial render
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    try {
+      const storedUser = sessionStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error("Failed to parse user from sessionStorage", error);
+      setUser(null); // Clear corrupted data
+    } finally {
+      setLoading(false); // 👈 4. Set loading to false after checking
     }
   }, []);
 
   const register = async (formData: any): Promise<User> => {
-    const response = await fetch('http://localhost:8080/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
+    const response = await fetch("http://localhost:8080/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
     });
 
     if (!response.ok) {
-      throw new Error('Registration failed');
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Registration failed");
     }
 
     const data = await response.json();
     return data.user;
   };
 
-  const login = async (email: string, password: string, role: string): Promise<void> => {
-    const response = await fetch('http://localhost:8080/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+  const login = async (
+    email: string,
+    password: string,
+    role: string
+  ): Promise<void> => {
+    const response = await fetch("http://localhost:8080/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, role }), // Include role if your backend uses it
     });
 
     if (!response.ok) {
-      throw new Error('Login failed');
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Login failed");
     }
 
     const data = await response.json();
     setUser(data.user);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    sessionStorage.setItem("user", JSON.stringify(data.user));
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('user');
+    sessionStorage.removeItem("user");
   };
 
-  return (
-    <AuthContext.Provider value={{ user, register, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = {
+    user,
+    loading, // 👈 5. Provide loading state
+    setUser, // 👈 6. Provide setUser function
+    register,
+    login,
+    logout,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

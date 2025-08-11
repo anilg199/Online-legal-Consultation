@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
 const Profile: React.FC = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth(); // Assuming setUser is available from context to update the name in the header
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -17,6 +17,7 @@ const Profile: React.FC = () => {
     reset,
     watch,
   } = useForm({
+    // It's fine to keep defaultValues empty, as they will be populated by the API call
     defaultValues: {
       name: '',
       email: '',
@@ -31,7 +32,7 @@ const Profile: React.FC = () => {
       education: '',
       aadhaarPan: '',
       driveLink: '',
-    },    
+    },
   });
 
   useEffect(() => {
@@ -40,7 +41,16 @@ const Profile: React.FC = () => {
         .get(`http://localhost:8080/api/profile`, {
           params: { email: user.email },
         })
-        .then((response) => reset(response.data))
+        .then((response) => {
+          // 💡 FIX: Transform array data to comma-separated strings BEFORE resetting the form
+          const profileData = {
+            ...response.data,
+            specializations: response.data.specializations?.join(', ') || '',
+            languages: response.data.languages?.join(', ') || '',
+            education: response.data.education?.join(', ') || '',
+          };
+          reset(profileData);
+        })
         .catch((error) => console.error('Failed to fetch profile:', error));
     }
   }, [user?.email, reset]);
@@ -48,36 +58,36 @@ const Profile: React.FC = () => {
   const onSubmit = async (data: any) => {
     try {
       setLoading(true);
-  
-      // Convert string fields to arrays
+
       const transformedData = {
         ...data,
-        consultationFee: data.consultationFee ? parseInt(data.consultationFee) : 0,
-        yearsOfExperience: data.yearsOfExperience ? parseInt(data.yearsOfExperience) : 0,
-        specializations: data.specializations
-          ? data.specializations.split(',').map((s: string) => s.trim())
-          : [],
-        languages: data.languages
-          ? data.languages.split(',').map((l: string) => l.trim())
-          : [],
-        education: data.education
-          ? data.education.split(',').map((e: string) => e.trim())
-          : [],
+        consultationFee: data.consultationFee ? parseInt(data.consultationFee) : null,
+        yearsOfExperience: data.yearsOfExperience ? parseInt(data.yearsOfExperience) : null,
+        // This transformation from string to array is correct
+        specializations: data.specializations ? data.specializations.split(',').map((s: string) => s.trim()) : [],
+        languages: data.languages ? data.languages.split(',').map((l: string) => l.trim()) : [],
+        education: data.education ? data.education.split(',').map((e: string) => e.trim()) : [],
       };
-  
+
       const response = await axios.put(
         `http://localhost:8080/api/profile?email=${user?.email}`,
         transformedData
       );
-  
-      // On update, show the formatted string again
-      reset({
+
+      // Again, transform the response for display
+      const displayData = {
         ...response.data,
         specializations: response.data.specializations?.join(', ') || '',
         languages: response.data.languages?.join(', ') || '',
         education: response.data.education?.join(', ') || '',
-      });
-  
+      };
+      reset(displayData);
+
+      // Optional: Update user context if the name changed
+      if (user && setUser) {
+          setUser({ ...user, name: response.data.name });
+      }
+
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -85,13 +95,12 @@ const Profile: React.FC = () => {
       setLoading(false);
     }
   };
-  
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       console.log('Selected avatar file:', file);
-      // Future: upload avatar
+      // Future: upload avatar logic
     }
   };
 
@@ -136,7 +145,7 @@ const Profile: React.FC = () => {
           />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-gray-800">{user?.name}</h2>
+          <h2 className="text-xl font-bold text-gray-800">{watch('name') || user?.name}</h2>
           <p className="text-sm text-gray-500 capitalize">{user?.role}</p>
         </div>
         <button
@@ -178,14 +187,15 @@ const Profile: React.FC = () => {
             ) : (
               <div className="space-y-2 pt-4 border-t border-gray-200">
                 <h3 className="text-lg font-semibold text-purple-700">Lawyer Details</h3>
+                {/* 💡 IMPROVEMENT: Simplified display logic */}
                 <p><strong>Bio:</strong> {watch('bio') || '—'}</p>
                 <p><strong>Location:</strong> {watch('location') || '—'}</p>
-                <p><strong>Consultation Fee:</strong> ₹{watch('consultationFee') || '—'}</p>
+                <p><strong>Consultation Fee:</strong> {watch('consultationFee') ? `₹${watch('consultationFee')}` : '—'}</p>
                 <p><strong>Bar Council Number:</strong> {watch('barCouncilNumber') || '—'}</p>
                 <p><strong>Years of Experience:</strong> {watch('yearsOfExperience') || '—'}</p>
-                <p><strong>Specializations:</strong> {(watch('specializations') || []).toString().split(',').map(s => s.trim()).join(', ') || '—'}</p>
-                <p><strong>Languages:</strong> {(watch('languages') || []).toString().split(',').map(l => l.trim()).join(', ') || '—'}</p>
-                <p><strong>Education:</strong> {(watch('education') || []).toString().split(',').map(e => e.trim()).join(', ') || '—'}</p>
+                <p><strong>Specializations:</strong> {watch('specializations') || '—'}</p>
+                <p><strong>Languages:</strong> {watch('languages') || '—'}</p>
+                <p><strong>Education:</strong> {watch('education') || '—'}</p>
               </div>
             )}
           </>
